@@ -1,0 +1,16 @@
+[
+{
+  "modid": "mixintestmod",
+  "name": "Mixin Test Mod",
+  "description": "Mixin Test Mod.",
+  "version": "1.0",
+  "mcversion": "1.8",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["gromp15"],
+  "credits": "Thanks to myself!",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]

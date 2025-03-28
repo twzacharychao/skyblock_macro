@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.7",
+  "package": "com.gromp.mixintestmod.mixins",
+  "refmap": "mixins.mixintestmod.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "MixinNetworkManager",
+    "MixinMinecraft",
+    "MixinEntityPlayerSP"
+  ]
+}
