@@ -11,19 +11,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gromp.mixintestmod.KeyboardHandler;
 import com.gromp.mixintestmod.MouseHandler;
+import com.gromp.mixintestmod.Helpers.Logger;
+import com.gromp.mixintestmod.Pest.PestMain;
+import com.gromp.mixintestmod.Pest.TurnThread;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
-import net.minecraft.util.ChatComponentText;
 
 @Mixin(EntityPlayerSP.class)
 public class MixinEntityPlayerSP {
-	
-	private void send(String s) {
-		Minecraft.getMinecraft().thePlayer.addChatComponentMessage(new ChatComponentText("[System]: " + s));
-	}
 	
 	private double smallThreshhold = 0.2;
 	private double normalThreshhold = 0.7;
@@ -34,13 +32,13 @@ public class MixinEntityPlayerSP {
 		if (message.startsWith(";")) {
 			String[] each = message.substring(1).split(" ");
 			if (each.length < 1) {
-				send("Invalid command");
+				Logger.send("Invalid command");
 				ci.cancel(); return;
 			}
 			String cmd = each[0];
 			if (cmd.equals("turn")) {
 				if (each.length != 3) {
-					send("Invalid number of parameters (expected 2)");
+					Logger.send("Invalid number of parameters (expected 2)");
 					ci.cancel(); return;
 				}
 				float pitch = 0, yaw = 0;
@@ -49,16 +47,16 @@ public class MixinEntityPlayerSP {
 					yaw = Float.parseFloat(each[2]);
 				}
 				catch (NumberFormatException e) {
-					send("Invalid parameters"); ci.cancel(); return;
+					Logger.send("Invalid parameters"); ci.cancel(); return;
 				}
-				send("Turning to (" + pitch + " " + yaw + ")");
+				Logger.send("Turning to (" + pitch + " " + yaw + ")");
 				KeyboardHandler.setTargetPitch(pitch);
 				KeyboardHandler.setTargetYaw(yaw);
 				KeyboardHandler.turn();
 			}
 			else if (cmd.equals("move")) {
 				if (each.length != 3) {
-					send("Invalid number of parameters (expected 2)");
+					Logger.send("Invalid number of parameters (expected 2)");
 					ci.cancel(); return;
 				}
 				double x = 0, z = 0;
@@ -67,9 +65,9 @@ public class MixinEntityPlayerSP {
 					z = Double.parseDouble(each[2]);
 				}
 				catch (NumberFormatException e) {
-					send("Invalid parameters"); ci.cancel(); return;
+					Logger.send("Invalid parameters"); ci.cancel(); return;
 				}
-				send("Moving to (" + x + " " + z + ")");
+				Logger.send("Moving to (" + x + " " + z + ")");
 				KeyboardHandler.setTargetX(x);
 				KeyboardHandler.setTargetZ(z);
 				KeyboardHandler.move();
@@ -85,29 +83,29 @@ public class MixinEntityPlayerSP {
 							String playerName = playerInfo.getGameProfile() != null ? playerInfo.getGameProfile().getName() : "Unknown";
 				            String displayName = playerInfo.getDisplayName() != null ? playerInfo.getDisplayName().getUnformattedText() : "No Display Name";
 
-				            send("Get Name: " + playerName);
-				            send("Display Name: " + displayName);
+				            Logger.send("Get Name: " + playerName);
+				            Logger.send("Display Name: " + displayName);
 						}
 					}
 				}
 			}
 			else if (cmd.equals("setspeed")) {
 				if (each.length != 2) {
-					send("Invalid number of parameters (expected 1)");
+					Logger.send("Invalid number of parameters (expected 1)");
 					ci.cancel(); return;
 				}
 				try {
 					int speed = Integer.parseInt(each[1]);
-					send("Speed set to " + speed);
+					Logger.send("Speed set to " + speed);
 					KeyboardHandler.setSpeed(speed);
 				}
 				catch (NumberFormatException e){
-					send("Invalid speed"); ci.cancel(); return;
+					Logger.send("Invalid speed"); ci.cancel(); return;
 				}
 			}
 			else if (cmd.equals("farm")) {
 				if (each.length != 2) {
-					send("Invalid number of parameters (expected 1)");
+					Logger.send("Invalid number of parameters (expected 1)");
 					ci.cancel(); return;
 				}
 				if (each[1].equals("wheat")) {
@@ -271,37 +269,37 @@ public class MixinEntityPlayerSP {
 					KeyboardHandler.processActions();
 				}
 				else {
-					send("Unknown parameter (expected wheat/pumpkin/melon/ryan/start)");
+					Logger.send("Unknown parameter (expected wheat/pumpkin/melon/ryan/start)");
 					ci.cancel(); return;
 				}
 			}
 			else if (cmd.equals("turnwait")) {
 				if (each.length != 2) {
-					send("Expected 1 parameter");
+					Logger.send("Expected 1 parameter");
 					ci.cancel(); return;
 				}
 				KeyboardHandler.turnWait = Integer.parseInt(each[1]);
-				send("Successfully set turn wait to " + KeyboardHandler.turnWait);
+				Logger.send("Successfully set turn wait to " + KeyboardHandler.turnWait);
 			}
 			else if (cmd.equals("setthreshhold")) {
 				if (each.length != 3) {
-					send("Expected 2 parameters");
+					Logger.send("Expected 2 parameters");
 					ci.cancel(); return;
 				}
 				if (each[1].equals("short")) {
 					smallThreshhold = Double.parseDouble(each[2]);
-					send("Set short threshhold to " + smallThreshhold);
+					Logger.send("Set short threshhold to " + smallThreshhold);
 				}
 				else if (each[1].equals("normal")) {
 					normalThreshhold = Double.parseDouble(each[2]);
-					send("Set normal threshhold to " + normalThreshhold);
+					Logger.send("Set normal threshhold to " + normalThreshhold);
 				}
 				else if (each[1].equals("long")) {
 					longThreshhold = Double.parseDouble(each[2]);
-					send("Set long threshhold to " + longThreshhold);
+					Logger.send("Set long threshhold to " + longThreshhold);
 				}
 				else {
-					send("Unknown parameter (expected short/normal/long)");
+					Logger.send("Unknown parameter (expected short/normal/long)");
 				}
 			}
 			else if (cmd.equals("jump")) {
@@ -312,14 +310,14 @@ public class MixinEntityPlayerSP {
 			else if (cmd.equals("movewithoutturning")) {
 				/*
 				if (each.length != 4) {
-					send("Expected 3 parameters");
+					Logger.send("Expected 3 parameters");
 					ci.cancel();
 					return;
 				}
 				double x = Double.parseDouble(each[1]);
 				double z = Double.parseDouble(each[2]);
 				int key = Integer.parseInt(each[3]);
-				send("Moving without turning to (" + x + ", " + z + ")");
+				Logger.send("Moving without turning to (" + x + ", " + z + ")");
 				KeyboardHandler.setTargetX(x);
 				KeyboardHandler.setTargetZ(z);
 				KeyboardHandler.moveWithoutTurning(key);
@@ -332,18 +330,50 @@ public class MixinEntityPlayerSP {
 				catch (InterruptedException e) {}
 			}
 			else if (cmd.equals("modifyconstant")) {
-				send("Set turn constant to " + Float.parseFloat(each[1]));
+				Logger.send("Set turn constant to " + Float.parseFloat(each[1]));
 				KeyboardHandler.turnConstant = Float.parseFloat(each[1]);
 			}
 			else if (cmd.equals("clearqueue")) {
-				send("Queue cleared");
+				Logger.send("Queue cleared");
 				KeyboardHandler.clearQueue();
 			}
+			else if (cmd.equals("pest")) {
+				if (each.length != 2) {
+					Logger.send("Invalid parameter count (expected 2)");
+				}
+				else {
+					if (each[1].equals("start")) {
+						PestMain.start();
+					}
+					else if (each[1].equals("stop")) {
+						PestMain.stop();
+					}
+					else {
+						Logger.send("Invalid parameter (expected start/stop)");
+					}
+				}
+			}
+			else if (cmd.equals("pestturn")) {
+				float pitch = Float.parseFloat(each[1]);
+				float yaw = Float.parseFloat(each[2]);
+				new Thread(() -> {
+					try {
+						TurnThread tmp = new TurnThread();
+						tmp.start();
+						tmp.setTargetPitch(pitch);
+						tmp.setTargetYaw(yaw);
+						tmp.startRunning();
+						Thread.sleep(2000);
+						tmp.interrupt();
+					}
+					catch (InterruptedException e) {}
+				}).start();
+			}
 			else if (cmd.equals("help")) {
-				send("Available commands:\nturn (pitch, yaw)\nmove (x, z)\nsetspeed (speed)\nfarm (wheat/pumpkin/start)\nclearqueue\nmodifyconstant");
+				Logger.send("Available commands:\nturn (pitch, yaw)\nmove (x, z)\nsetspeed (speed)\nfarm (wheat/pumpkin/start)\nclearqueue\nmodifyconstant\npest (start/stop)");
 			}
 			else {
-				send("Unknown command (try help)");
+				Logger.send("Unknown command (try help)");
 			}
 			ci.cancel();
 		}

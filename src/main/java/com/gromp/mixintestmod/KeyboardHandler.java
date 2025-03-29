@@ -7,12 +7,13 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import com.gromp.mixintestmod.Helpers.Logger;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChatComponentText;
 
 public class KeyboardHandler {
 	
@@ -94,15 +95,13 @@ public class KeyboardHandler {
 	private static volatile Thread turningThread;
 	
 	public static volatile int reqDx = 0, reqDy = 0;
-	public static volatile int reqNx = 0, reqNy = 0;
-	
 	
 	public static void turn() {
 		
 		final float sens = Minecraft.getMinecraft().gameSettings.mouseSensitivity;
 		final float constant = 1.2F * cube(0.6F * sens + 0.2F) * turnConstant;
 		
-//		send("Turning " + pitch + " " + yaw);
+//		Logger.send("Turning " + pitch + " " + yaw);
 		
 		if (robotTurning) {
 			reqDx = 0; reqDy = 0;
@@ -114,17 +113,11 @@ public class KeyboardHandler {
 //			try {
 				yaw = normalize(yaw);
 				targetYaw = normalize(targetYaw);
-				int steps = 6;
 				float yawRight = targetYaw - yaw;
 				if (yawRight < 0) yawRight += 360;
 				final int dy = (int)Math.round((targetPitch - pitch) / constant);
 				final int dx = (int)Math.round(yawRight <= 180.0 ? yawRight / constant : (yaw - targetYaw < 0 ? (yaw - targetYaw + 360) : yaw - targetYaw) / -constant);
-				
-				int nx = dx / steps, ny = dy / steps;
-				if (nx == 0) nx = dx < 0 ? -1 : 1;
-				if (ny == 0) ny = dy < 0 ? -1 : 1;
 				reqDx = dx; reqDy = dy;
-				reqNx = nx; reqNy = ny;
 				while (reqDx != 0 || reqDy != 0) {
 					try {
 						Thread.sleep(2);
@@ -342,10 +335,6 @@ public class KeyboardHandler {
 		actionQueue.add(new Action(0, 0, 10));
 	}
 	
-	private static void send(String s) {
-		Minecraft.getMinecraft().thePlayer.addChatComponentMessage(new ChatComponentText("[System]: " + s));
-	}
-	
 	public static enum skipAction {
 		SKIP, WARP
 	}
@@ -385,23 +374,7 @@ public class KeyboardHandler {
 	public static void manualPauseActions() {
 		pauseActions();
 		manualPause = !manualPause;
-		send(manualPause ? "Paused" : "Continued");
-	}
-	
-	private static String findMatchingStringInTab(String s) {
-		NetHandlerPlayClient netHandler = Minecraft.getMinecraft().getNetHandler();
-		if (netHandler == null) return null;
-		Collection<NetworkPlayerInfo> playerList = netHandler.getPlayerInfoMap();
-		if (playerList == null) return null;
-		for (NetworkPlayerInfo playerInfo : playerList) {
-			if (playerInfo == null) continue;
-
-			String displayName = playerInfo.getDisplayName() != null ? playerInfo.getDisplayName().getUnformattedText() : "";
-
-			if (displayName.contains(s)) return displayName;
-			
-		}
-		return null;
+		Logger.send(manualPause ? "Paused" : "Continued");
 	}
 	
 	private static volatile float actionTargetPitch = -1, actionTargetYaw = -1;
@@ -419,7 +392,7 @@ public class KeyboardHandler {
 			try {
 				long lastTime = (long)1e18;
 				long cutoff = 1 << 30, mul = 1000000000;
-				send("Begin");
+				Logger.send("Begin");
 				while (running) {
 					actionLoops:
 					for (int i = lastQueueIndex; i < actionQueue.size(); i++) {
@@ -444,14 +417,14 @@ public class KeyboardHandler {
 									continue;
 								}
 								ItemStack itemHolding = Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(0);
-//								send("Before: itemHolding == null: " + (itemHolding == null));
+//								Logger.send("Before: itemHolding == null: " + (itemHolding == null));
 								if (itemHolding == null) {
 									Thread.sleep(3000);
 									itemHolding = Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(0);
 								}
-//								send("itemHolding == null: " + (itemHolding == null));
+//								Logger.send("itemHolding == null: " + (itemHolding == null));
 								if (itemHolding == null || !itemHolding.getDisplayName().contains("Melon")) {
-									send("Warped because we are not in skyblock");
+									Logger.send("Warped because we are not in skyblock");
 									pauseActions();
 									Minecraft.getMinecraft().thePlayer.sendChatMessage("/lobby");
 									Thread.sleep(10000);
@@ -469,7 +442,7 @@ public class KeyboardHandler {
 							if (System.nanoTime() - lastTime >= cutoff) {
 								lastQueueIndex = 0;
 								if (currentMode == skipAction.SKIP) { 
-									send("Skipped");
+									Logger.send("Skipped");
 									setTargetYaw(yaw);
 									setTargetPitch(pitch);
 									setTargetX(x);
@@ -495,7 +468,7 @@ public class KeyboardHandler {
 							lastTime = System.nanoTime();
 							cutoff = a.cutoff * mul;
 							if (a.type == 0) {
-//								send("At " + i);
+//								Logger.send("At " + i);
 								float newTargetPitch = (float)a.x + getNoise(10) / 10.0f;
 								float newTargetYaw = (float)a.z + (a.addNoise ? getNoise(10) / 10.0f : 0);
 								setTargetPitch(newTargetPitch);
@@ -548,7 +521,7 @@ public class KeyboardHandler {
 								MouseHandler.jump();
 							}
 							else if (a.type == 9) {
-								send("sent warp garden command");
+								Logger.send("sent warp garden command");
 								paused = true;
 								Minecraft.getMinecraft().thePlayer.sendChatMessage(a.command);
 								lastTime = 1000000000000000000L;
@@ -558,20 +531,20 @@ public class KeyboardHandler {
 								lastQueueIndex = 0;
 							}
 							else if (a.type == 10) {
-								send("Repellent attempt");
+								Logger.send("Repellent attempt");
 								int orig = Minecraft.getMinecraft().thePlayer.inventory.currentItem;
 								for (int j = 1; j <= 6; j++) {
 									ItemStack is = Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(j);
 									if (is != null && is.getDisplayName().contains("Pest")) {
-										send("idx " + j + " has pest repellent");
+										Logger.send("idx " + j + " has pest repellent");
 										Minecraft.getMinecraft().thePlayer.inventory.currentItem = j;
 										MouseHandler.startRightClick();
 										Thread.sleep(400);
 										MouseHandler.stopRightClick();
 										if (Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(j) == null) {
-											send("Used repellent successfully");
+											Logger.send("Used repellent successfully");
 										}
-										else send("Did not use repellent");
+										else Logger.send("Did not use repellent");
 										break;
 									}
 								}
@@ -611,13 +584,13 @@ public class KeyboardHandler {
 					for (Entity e : Minecraft.getMinecraft().theWorld.loadedEntityList) {
 						String name = e.getName();
 //						if ((name.equals("Bat") || name.equals("Silverfish"))) {
-//							send(e.toString());
+//							Logger.send(e.toString());
 //						}
 						if ((name.equals("Bat") || name.equals("Silverfish")) && e.getDistanceToEntity(Minecraft.getMinecraft().thePlayer) <= 13.5) {
 							targetEntity = e.getEntityId();
 							if (!paused) pauseActions();
 							DecimalFormat df = new DecimalFormat("#####0.000");
-							send("Pest detected (id = " + targetEntity + ")");
+							Logger.send("Pest detected (id = " + targetEntity + ")");
 							lastNotifyTime = -1;
 							Minecraft.getMinecraft().thePlayer.inventory.currentItem = 7;
 							MouseHandler.startRightClick();
@@ -628,7 +601,7 @@ public class KeyboardHandler {
 				if (targetEntity != -1) {
 					Entity e = Minecraft.getMinecraft().theWorld.getEntityByID(targetEntity);
 					if (e == null || e.getDistanceToEntity(Minecraft.getMinecraft().thePlayer) > 13.5) {
-						if (e == null) send("Pest cleared (id = " + targetEntity + ")");
+						if (e == null) Logger.send("Pest cleared (id = " + targetEntity + ")");
 						MouseHandler.stopRightClick();
 						Minecraft.getMinecraft().thePlayer.inventory.currentItem = 0;
 						targetEntity = -1;
@@ -651,7 +624,7 @@ public class KeyboardHandler {
 							long curNotifyTime = System.nanoTime();
 							if (curNotifyTime - lastNotifyTime >= (long)1.5e9) {
 								DecimalFormat df = new DecimalFormat("#####0.00");
-								send("Pest at (" + df.format(pestX) + ", " + df.format(pestY) + ", " + df.format(pestZ) + ", D: " + df.format(e.getDistanceToEntity(Minecraft.getMinecraft().thePlayer)) + ")");
+								Logger.send("Pest at (" + df.format(pestX) + ", " + df.format(pestY) + ", " + df.format(pestZ) + ", D: " + df.format(e.getDistanceToEntity(Minecraft.getMinecraft().thePlayer)) + ")");
 								lastNotifyTime = curNotifyTime;
 							}
 							
@@ -700,7 +673,7 @@ public class KeyboardHandler {
 		Thread walkThread = new Thread(() -> {
 			try {
 				paused = true;
-				send("Warped");
+				Logger.send("Warped");
 				stop();
 				Thread.sleep(3000);
 				Minecraft.getMinecraft().thePlayer.sendChatMessage("/warp hub");
@@ -712,7 +685,7 @@ public class KeyboardHandler {
 				KeyboardHandler.stopShifting();
 				paused = false;
 				if (!running) {
-					send("Start again");
+					Logger.send("Start again");
 					running = true;
 					processActions();
 				}

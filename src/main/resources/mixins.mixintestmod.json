@@ -10,6 +10,8 @@
   "mixins": [
     "MixinNetworkManager",
     "MixinMinecraft",
-    "MixinEntityPlayerSP"
+    "MixinEntityPlayerSP",
+	"MixinKeyBinding",
+	"MixinEntityRenderer"
   ]
 }

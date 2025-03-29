@@ -21,15 +21,11 @@ import net.minecraft.util.ChatComponentText;
 @Mixin(NetworkManager.class)
 public class MixinNetworkManager {
 	
-	private void send(String s) {
-		Minecraft.getMinecraft().thePlayer.addChatComponentMessage(new ChatComponentText("[System]: " + s));
-	}
-	
 	@Inject(method = "channelRead0", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/Packet;processPacket(Lnet/minecraft/network/INetHandler;)V", shift = At.Shift.BEFORE), cancellable = true)
 	private void packetReceived(ChannelHandlerContext ctx, Packet<?> packet, CallbackInfo ci) {
 		/*
 		if (packet instanceof S02PacketChat) {
-			send("Message in chat " + ((S02PacketChat)packet).getChatComponent().getUnformattedText());
+			Logger.send("Message in chat " + ((S02PacketChat)packet).getChatComponent().getUnformattedText());
 		}
 		*/
 	}
@@ -53,9 +49,9 @@ public class MixinNetworkManager {
 			}
 		}
 	}
-	
+
 	@Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
-    private void sendPacket(Packet packetIn, CallbackInfo ci) throws InterruptedException {
+	private void sendPacket(Packet packetIn, CallbackInfo ci) throws InterruptedException {
 
 		double x = 0, y = 0, z = 0;
 		

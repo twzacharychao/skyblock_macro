@@ -7,16 +7,15 @@ import java.awt.Robot;
 import java.io.IOException;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gromp.mixintestmod.KeyboardHandler;
-import com.gromp.mixintestmod.MouseHandler;
+import com.gromp.mixintestmod.Helpers.Logger;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.ChatComponentText;
 
 @Mixin(Minecraft.class)
 public class MixinMinecraft {
@@ -43,44 +42,45 @@ public class MixinMinecraft {
 
 	private Robot r = null;
 	
-	private static void send(String s) {
-		Minecraft.getMinecraft().thePlayer.addChatComponentMessage(new ChatComponentText("[System]: " + s));
-	}
-	
 //	long pestLastTime = -1;
+	
+	@Shadow
+	private boolean isGamePaused;
 	
 	@Inject(method = "runTick()V", at = @At(value = "HEAD"))
     private void testRunTick(CallbackInfo info) throws IOException, AWTException {
-		if (Minecraft.getMinecraft() != null && Minecraft.getMinecraft().thePlayer != null) {
-//			KeyboardHandler.setX(Minecraft.getMinecraft().thePlayer.posX);
-//			KeyboardHandler.setY(Minecraft.getMinecraft().thePlayer.posY);
-//			KeyboardHandler.setZ(Minecraft.getMinecraft().thePlayer.posZ);
-//			KeyboardHandler.setYaw(Minecraft.getMinecraft().thePlayer.cameraYaw);
-//			KeyboardHandler.setPitch(Minecraft.getMinecraft().thePlayer.cameraPitch);
-			if (Minecraft.getMinecraft().isGamePaused() || !Minecraft.getMinecraft().getMinecraft().inGameHasFocus) {
-				KeyboardHandler.stop();
-			}
-			else {
-				if (KeyboardHandler.reqDx != 0 || KeyboardHandler.reqDy != 0) {
-					if (r == null) {
-						try {
-							r = new Robot();
-						}
-						catch (AWTException e) {}
+		if (Minecraft.getMinecraft() != null && Minecraft.getMinecraft().thePlayer != null && Minecraft.getMinecraft().inGameHasFocus) {
+			if (KeyboardHandler.reqDx != 0 || KeyboardHandler.reqDy != 0) {
+				if (r == null) {
+					try {
+						r = new Robot();
 					}
-					PointerInfo mouse = MouseInfo.getPointerInfo();
-					int mouseX = (int)mouse.getLocation().getX();
-					int mouseY = (int)mouse.getLocation().getY();
-					int mx = min(KeyboardHandler.reqNx, KeyboardHandler.reqDx);
-					int my = min(KeyboardHandler.reqNy, KeyboardHandler.reqDy);
-					r.mouseMove(mouseX + mx, mouseY + my);
-//					send("Dx Dy " + KeyboardHandler.reqDx + " " + KeyboardHandler.reqDy + mx + " " + my);
-					KeyboardHandler.reqDx -= mx;
-					KeyboardHandler.reqDy -= my;
+					catch (AWTException e) {}
 				}
+				PointerInfo mouse = MouseInfo.getPointerInfo();
+				int mouseX = (int)mouse.getLocation().getX();
+				int mouseY = (int)mouse.getLocation().getY();
+				final int steps = 6;
+				int nx = KeyboardHandler.reqDx / steps, ny = KeyboardHandler.reqDy / steps;
+				if (nx == 0) nx = KeyboardHandler.reqDx < 0 ? -1 : 1;
+				if (ny == 0) ny = KeyboardHandler.reqDy < 0 ? -1 : 1;
+				int mx = min(nx, KeyboardHandler.reqDx);
+				int my = min(ny, KeyboardHandler.reqDy);
+				r.mouseMove(mouseX + mx, mouseY + my);
+				KeyboardHandler.reqDx -= mx;
+				KeyboardHandler.reqDy -= my;
 			}
 		}
     }
+	
+	@Inject(method = "runGameLoop()V", at = @At(value = "HEAD"), cancellable = true)
+	private void onRunGameLoop(CallbackInfo ci) throws IOException {
+		/*
+		if (Minecraft.getMinecraft().thePlayer != null) {
+			Logger.send("Run game loop" + " " + Minecraft.getMinecraft().skipRenderWorld);
+		}
+		*/
+	}
 	
 	private int min(int x, int y) {
 		return Math.abs(x) < Math.abs(y) ? x : y;
