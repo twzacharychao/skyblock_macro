@@ -21,6 +21,11 @@ public class PestMain {
 			}
 		}
 	}
+	
+	public static void debug() {
+		mainThread.debug();
+	}
+	
 	public static void stop() {
 		if (mainThread != null) { 
 			mainThread.interrupt();

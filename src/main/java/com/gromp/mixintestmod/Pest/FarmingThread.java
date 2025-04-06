@@ -10,7 +10,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
-import net.minecraft.item.ItemStack;
 
 public abstract class FarmingThread extends Thread {
 
@@ -45,8 +44,8 @@ public abstract class FarmingThread extends Thread {
 		return null;
 	}
 	
-	public void macroCheck() {
-		//we got macro checked
+	public void debug() {
+		Logger.send("Debug");
 	}
 	
 	protected volatile boolean running = false;

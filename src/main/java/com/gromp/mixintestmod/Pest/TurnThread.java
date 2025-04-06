@@ -2,7 +2,6 @@ package com.gromp.mixintestmod.Pest;
 
 import java.util.Random;
 
-import com.gromp.mixintestmod.Helpers.Logger;
 import com.gromp.mixintestmod.Helpers.TurnHelper;
 
 import net.minecraft.client.Minecraft;

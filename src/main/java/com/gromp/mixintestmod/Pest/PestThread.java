@@ -3,7 +3,6 @@ package com.gromp.mixintestmod.Pest;
 import com.gromp.mixintestmod.Helpers.Logger;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.client.settings.KeyBinding;
 
 public class PestThread extends FarmingThread {
@@ -67,6 +66,7 @@ public class PestThread extends FarmingThread {
 		}
 	}
 	
+	@Override
 	public void debug() {
 		Logger.send("Lane: " + getLane(Minecraft.getMinecraft().thePlayer.posX));
 	}
