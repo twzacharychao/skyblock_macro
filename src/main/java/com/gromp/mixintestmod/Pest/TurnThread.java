@@ -6,15 +6,17 @@ import com.gromp.mixintestmod.Helpers.Logger;
 import com.gromp.mixintestmod.Helpers.TurnHelper;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.play.client.C03PacketPlayer;
 
 public class TurnThread extends Thread {
 	@Override
 	public void run() {
 		try {
+			TurnHelper.running = true;
 			while (true) {
 				Thread.sleep(50);
-				if (!running) continue;
+				if (!running) { 
+					continue;
+				}
 				Minecraft mc = Minecraft.getMinecraft();
 				float yaw = mc.thePlayer.rotationYaw;
 				float pitch = mc.thePlayer.rotationPitch;
@@ -35,17 +37,21 @@ public class TurnThread extends Thread {
 				TurnHelper.dy = dy;
 			}
 		}
-		catch (InterruptedException e) {}
+		catch (InterruptedException e) {
+			TurnHelper.running = false;
+		}
 	}
 	
 	public void startRunning() {
 		if (running) return;
 		running = true;
+		TurnHelper.running = true;
 	}
 
 	public void stopRunning() {
 		if (!running) return;
 		running = false;
+		TurnHelper.running = false;
 	}
 	
 	public void setTargetPitch(float pitch) { 
@@ -53,6 +59,10 @@ public class TurnThread extends Thread {
 	}
 	public void setTargetYaw(float yaw) { 
 		this.targetYaw = yaw; 
+	}
+	
+	public boolean onTarget() {
+		return angleDiff(Minecraft.getMinecraft().thePlayer.rotationYaw, targetYaw) < 0.5 && angleDiff(Minecraft.getMinecraft().thePlayer.rotationPitch, targetPitch) < 0.5;
 	}
 	
 	private float jitter() {

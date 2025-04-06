@@ -19,7 +19,6 @@ public class MixinKeyBinding {
 				PestMain.toggleRunning();
 			}
 			else if (keyCode == 24) { // o
-				PestMain.debug();
 			}
 		}
 		//Logger.send("Used key " + keyCode + " " + pressed);

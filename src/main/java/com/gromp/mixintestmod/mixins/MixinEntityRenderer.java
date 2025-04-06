@@ -19,7 +19,7 @@ public class MixinEntityRenderer {
 	}
 	@Inject(method = "updateCameraAndRender(FJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/MouseHelper;mouseXYChange()V", shift = At.Shift.AFTER), cancellable = true)
 	private void onUpdateCameraAndRender(float partialTicks, long nanoTime, CallbackInfo ci) {
-		if (TurnHelper.dx != 0 || TurnHelper.dy != 0) {
+		if (TurnHelper.running) {
 			Minecraft.getMinecraft().mouseHelper.deltaX = TurnHelper.dx;
 			Minecraft.getMinecraft().mouseHelper.deltaY = -TurnHelper.dy;
 			TurnHelper.dx = 0;

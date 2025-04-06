@@ -338,19 +338,14 @@ public class MixinEntityPlayerSP {
 				KeyboardHandler.clearQueue();
 			}
 			else if (cmd.equals("pest")) {
-				if (each.length != 2) {
-					Logger.send("Invalid parameter count (expected 2)");
+				if (each.length == 2 && each[1].equals("stop")) {
+					PestMain.stop();
+				}
+				else if (each.length == 3 && each[1].equals("start")) {
+					PestMain.start(each[2]);
 				}
 				else {
-					if (each[1].equals("start")) {
-						PestMain.start();
-					}
-					else if (each[1].equals("stop")) {
-						PestMain.stop();
-					}
-					else {
-						Logger.send("Invalid parameter (expected start/stop)");
-					}
+					Logger.send("Invalid parameter (expected pest start [mode]/stop)");
 				}
 			}
 			else if (cmd.equals("pestturn")) {

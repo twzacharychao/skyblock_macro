@@ -1,19 +1,12 @@
 package com.gromp.mixintestmod.Pest;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Queue;
-
 import com.gromp.mixintestmod.Helpers.Logger;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
-import net.minecraft.client.network.NetHandlerPlayClient;
-import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.item.ItemStack;
 
-public class PestThread extends Thread {
+public class PestThread extends FarmingThread {
 	@Override
 	public void run() {
 		try {
@@ -25,9 +18,7 @@ public class PestThread extends Thread {
 					turnThread.stopRunning();
 					continue;
 				}
-				if (Minecraft.getMinecraft().theWorld == null || 
-					Minecraft.getMinecraft().thePlayer == null || 
-					Minecraft.getMinecraft().currentScreen instanceof GuiDownloadTerrain) {
+				if (inLoadingScreen()) {
 					continue;
 				}
 				if (!commandQueue.isEmpty()) {
@@ -80,39 +71,9 @@ public class PestThread extends Thread {
 		Logger.send("Lane: " + getLane(Minecraft.getMinecraft().thePlayer.posX));
 	}
 	
-	public void toggleRunning() {
-		running = !running;
-		Logger.send("Pest farming " + (running ? "resumed" : "paused"));
-	}
-	
 	private int getLane(double x) {
 		if (x > -149.5) return 0;
 		if (x <= -234.5) return 18;
 		return (int)((-x - 149.5) / 5.0) + 1;
 	}
-	
-	private boolean inSkyblock() {
-		ItemStack slotOneItem = Minecraft.getMinecraft().thePlayer.inventory.getStackInSlot(0);
-		return slotOneItem != null && slotOneItem.getDisplayName().contains("Melon");
-	}
-	private boolean inGarden() {
-		return findMatchingStringInTab("Garden") != null;
-	}
-
-	private String findMatchingStringInTab(String s) {
-		NetHandlerPlayClient netHandler = Minecraft.getMinecraft().getNetHandler();
-		if (netHandler == null) return null;
-		Collection<NetworkPlayerInfo> playerList = netHandler.getPlayerInfoMap();
-		if (playerList == null) return null;
-		for (NetworkPlayerInfo playerInfo : playerList) {
-			if (playerInfo == null) continue;
-			String displayName = playerInfo.getDisplayName() != null ? playerInfo.getDisplayName().getUnformattedText() : "";
-			if (displayName.contains(s)) return displayName;
-		}
-		return null;
-	}
-	
-	private volatile boolean running = false;
-	private Queue<String> commandQueue = new LinkedList<>();
-	private TurnThread turnThread = new TurnThread();
 }
