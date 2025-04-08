@@ -25,18 +25,22 @@ public class PestMain {
 	}
 	
 	public static void notifyBlockBreak() {
-		mainThread.notifyBlockBreak();
+		if (mainThread != null) {
+			mainThread.notifyBlockBreak();
+		}
 	}
 	
 	public static void debug() {
-		mainThread.debug();
+		if (mainThread != null) {
+			mainThread.debug();
+		}
 	}
 	
 	public static void stop() {
 		if (mainThread != null) { 
 			mainThread.interrupt();
 			mainThread = null;
-			farmingType = null;
+			farmingType = "";
 			Logger.send("Pest thread shut down");
 		}
 	}
@@ -46,6 +50,6 @@ public class PestMain {
 		}
 	}
 	
-	public static String farmingType = null;
+	public static String farmingType = "";
 	private static volatile FarmingThread mainThread = null;
 }

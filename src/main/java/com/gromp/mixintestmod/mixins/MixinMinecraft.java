@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gromp.mixintestmod.KeyboardHandler;
-import com.gromp.mixintestmod.Helpers.Logger;
 
 import net.minecraft.client.Minecraft;
 

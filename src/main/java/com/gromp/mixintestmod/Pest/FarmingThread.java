@@ -1,8 +1,8 @@
 package com.gromp.mixintestmod.Pest;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.gromp.mixintestmod.Helpers.Logger;
 
@@ -41,9 +41,8 @@ public abstract class FarmingThread extends Thread {
 
 	protected String findMatchingStringInTab(String s) {
 		NetHandlerPlayClient netHandler = Minecraft.getMinecraft().getNetHandler();
-		if (netHandler == null) return null;
-		Collection<NetworkPlayerInfo> playerList = netHandler.getPlayerInfoMap();
-		if (playerList == null) return null;
+		if (netHandler == null || netHandler.getPlayerInfoMap() == null) return null;
+		Collection<NetworkPlayerInfo> playerList = new ArrayList<>(netHandler.getPlayerInfoMap());
 		for (NetworkPlayerInfo playerInfo : playerList) {
 			if (playerInfo == null) continue;
 			String displayName = playerInfo.getDisplayName() != null ? playerInfo.getDisplayName().getUnformattedText() : "";
@@ -57,23 +56,23 @@ public abstract class FarmingThread extends Thread {
 			return "???";
 		}
 		else if (macroCheckCount == 1) {
-			return "no way again bruh";
+			return "bruh";
 		}
 		else if (macroCheckCount == 2) {
-			return "hi again";
+			return "wtf";
 		}
 		else {
-			return "lool";
+			return "lmao";
 		}
 	}
 	
 	
 	protected volatile boolean running = false;
-	protected Queue<CommandInfo> commandQueue = new LinkedList<>();
-	protected TurnThread turnThread = new TurnThread();
+	protected volatile ConcurrentLinkedQueue<CommandInfo> commandQueue = new ConcurrentLinkedQueue<>();
+	protected volatile TurnThread turnThread = new TurnThread();
 
 	protected final long INF = (long)1e14;
-	protected long lastCropBreakTime = INF;
-	protected int macroCheckCount = 0;
-	protected long upTime = 0;
+	protected volatile long lastCropBreakTime = INF;
+	protected volatile int macroCheckCount = 0;
+	protected volatile long upTime = 0;
 }

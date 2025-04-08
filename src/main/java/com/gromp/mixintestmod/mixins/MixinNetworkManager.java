@@ -6,12 +6,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gromp.mixintestmod.KeyboardHandler;
-import com.gromp.mixintestmod.Helpers.Logger;
 import com.gromp.mixintestmod.Pest.PestMain;
 
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockCrops;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Blocks;
@@ -91,7 +89,7 @@ public class MixinNetworkManager {
 		        Block block = state.getBlock();
 		        switch (PestMain.farmingType) {
 		        case "wheat":
-					if (block == Blocks.wheat && state.getValue(BlockCrops.AGE).intValue() == 7) {
+					if (block == Blocks.wheat) {
 						PestMain.notifyBlockBreak();
 					}
 		        }

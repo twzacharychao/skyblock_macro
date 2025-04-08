@@ -1,5 +1,10 @@
 package com.gromp.mixintestmod.Pest;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import com.gromp.mixintestmod.Helpers.Logger;
@@ -15,7 +20,6 @@ public class WheatThread extends FarmingThread {
 		running = !running;
 		Logger.send("Pest farming " + (running ? "resumed" : "paused"));
 		if (!running) { 
-			turnThread.stopRunning();
 			resetKeyBinds();
 			upTime = 0;
 		}
@@ -55,7 +59,7 @@ public class WheatThread extends FarmingThread {
 					resetKeyBinds();
 					CommandInfo command = commandQueue.poll();
 					Thread.sleep(command.timeBefore);
-					mc.thePlayer.sendChatMessage(command.command);
+					sendChatMessage(command.command);
 					Thread.sleep(command.timeAfter);
 					upTime = 0;
 					continue;
@@ -75,25 +79,31 @@ public class WheatThread extends FarmingThread {
 					Logger.send("Macro check: " + macroCheckType);
 					switch (macroCheckType) {
 					case "Hotbar Swap":
-						Thread.sleep(2000);
+						Thread.sleep(1500);
 						resetKeyBinds();
 						mc.thePlayer.inventory.currentItem = 0;
-						Thread.sleep(2000);
+						Thread.sleep(5000);
 						break;
 					case "Idle":
 						resetKeyBinds();
 						Thread.sleep(2000);
-						mc.thePlayer.sendChatMessage(macroResponseMessage());
+						sendChatMessage(macroResponseMessage());
+						macroCheckCount++;
 						Thread.sleep(10000);
 						break;
 					case "Bedrock":
 						Thread.sleep(2000);
 						resetKeyBinds();
 						Thread.sleep(2000);
-						mc.thePlayer.sendChatMessage(macroResponseMessage());
+						sendChatMessage(macroResponseMessage());
+						macroCheckCount++;
 						commandQueue.add(new CommandInfo("/warp garden", 3000, 500));
+						break;
+					case "Turn":
+						Thread.sleep(1000);
+						resetKeyBinds();
+						Thread.sleep(5000);
 					}
-					macroCheckCount++;
 					macroCheckType = null;
 					upTime = 0;
 					continue;
@@ -104,14 +114,32 @@ public class WheatThread extends FarmingThread {
 					macroCheckType = "Idle";
 					continue;
 				}
+				if (mc.thePlayer.inventory.currentItem != 0) {
+					macroCheckType = "Hotbar Swap";
+					continue;
+				}
+				{
+					double x = mc.thePlayer.posX;
+					double y = mc.thePlayer.posY;
+					double z = mc.thePlayer.posZ;
+					if (x < -47.8 || x > 47.8 || z < -143.8 || z > -48.2 || y < 68.5 || y > 69.9) {
+						macroCheckType = "Bedrock";
+						continue;
+					}
+				}
+				if (upTime >= 3000 && !turnThread.onTarget()) {
+					macroCheckType = "Turn";
+					continue;
+				}
 				boolean foundPest = false;
-				for (Entity e : mc.theWorld.loadedEntityList) {
+				List<Entity> entities = new ArrayList<>(mc.theWorld.loadedEntityList);
+				for (Entity e : entities) {
+					if (e == null) continue;
 					String name = e.getName();
 					if ((name.equals("Bat") || name.equals("Silverfish")) && e.getDistanceToEntity(mc.thePlayer) <= 13) {
 						foundPest = true;
 						final int id = e.getEntityId();
 						resetKeyBinds();
-						turnThread.stopRunning();
 						while (mc.theWorld.getEntityByID(id) != null && mc.theWorld.getEntityByID(id).getDistanceToEntity(mc.thePlayer) <= 15) {
 							double x = mc.thePlayer.posX;
 							double y = mc.thePlayer.posY;
@@ -147,51 +175,44 @@ public class WheatThread extends FarmingThread {
 							Thread.sleep(10);
 						}
 						resetKeyBinds();
-						turnThread.stopRunning();
 						setTurnThreadToFarmingAngles();
 						mc.thePlayer.inventory.currentItem = 0;
+						upTime = 0;
 						break;
 					}
 				}
-				if (foundPest) continue;
-				{
+				if (foundPest) { 
+					continue;
+				}
+				mc.addScheduledTask(() -> {
+					if (mc.thePlayer == null) return;
+					double x = mc.thePlayer.posX;
+					double z = mc.thePlayer.posZ;
 					if (!mc.thePlayer.onGround) {
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), true);
-						continue;
+						return;
 					}
 					else {
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
 					}
-					if (mc.thePlayer.inventory.currentItem != 0) {
-						macroCheckType = "Hotbar Swap";
-						continue;
-					}
-					double x = mc.thePlayer.posX;
-					double y = mc.thePlayer.posY;
-					double z = mc.thePlayer.posZ;
-					if (x < -47.7 || x > 47.7 || z < -143.7 || z > -48.3 || y < 68.5 || y > 69.9) {
-						macroCheckType = "Bedrock";
-						continue;
-					}
-					
 
-					KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
 					KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), true);
 					turnThread.startRunning();
 
 					if (!turnThread.onTarget()) {
-						continue;
+						return;
 					}
+
+					KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
 
 					int lane = getLane(x);
 					if (lane == 15 && z >= -48.4) {
 						resetKeyBinds();
 						commandQueue.add(new CommandInfo("/warp garden", 500, 500));
-						turnThread.stopRunning();
 						resetFarmingAngles();
 						setTurnThreadToFarmingAngles();
 						upTime = 0;
-						continue;
+						return;
 					}
 					if (lane % 2 == 0) { // go left
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), true);
@@ -201,10 +222,20 @@ public class WheatThread extends FarmingThread {
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), false);
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), true);
 					}
-				}
+				});
 			}
 		}
 		catch (InterruptedException e) {
+			Logger.send("Thread interrupted");
+			turnThread.interrupt();
+			resetKeyBinds();
+		}
+		catch (Exception e) {
+			Logger.send(e.toString());
+			Writer writer = new StringWriter();
+			e.printStackTrace(new PrintWriter(writer));
+			String err = writer.toString();
+			Logger.send(err);
 			turnThread.interrupt();
 			resetKeyBinds();
 		}
@@ -217,14 +248,24 @@ public class WheatThread extends FarmingThread {
 	
 	private void resetKeyBinds() {
 		Minecraft mc = Minecraft.getMinecraft();
-		KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), false);
-		KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
+		upTime = 0;
+		mc.addScheduledTask(() -> {
+			KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), false);
+			KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
 
-		KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
+			KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
 
-		KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
-		KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), false);
-		KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), false);
+			KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+			KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), false);
+			KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), false);
+			turnThread.stopRunning();
+		});
+	}
+	
+	private void sendChatMessage(String msg) {
+		Minecraft.getMinecraft().addScheduledTask(() -> {
+			Minecraft.getMinecraft().thePlayer.sendChatMessage(msg);
+		});
 	}
 	
 	private void resetFarmingAngles() {
