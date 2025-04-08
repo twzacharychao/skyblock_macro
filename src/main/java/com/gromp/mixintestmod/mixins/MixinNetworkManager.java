@@ -6,16 +6,22 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gromp.mixintestmod.KeyboardHandler;
+import com.gromp.mixintestmod.Helpers.Logger;
+import com.gromp.mixintestmod.Pest.PestMain;
 
 import io.netty.channel.ChannelHandlerContext;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockCrops;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.init.Blocks;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.C03PacketPlayer.C04PacketPlayerPosition;
 import net.minecraft.network.play.client.C03PacketPlayer.C05PacketPlayerLook;
 import net.minecraft.network.play.client.C03PacketPlayer.C06PacketPlayerPosLook;
-import net.minecraft.network.play.server.S02PacketChat;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.network.play.client.C07PacketPlayerDigging;
+import net.minecraft.util.BlockPos;
 
 
 @Mixin(NetworkManager.class)
@@ -23,11 +29,6 @@ public class MixinNetworkManager {
 	
 	@Inject(method = "channelRead0", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/Packet;processPacket(Lnet/minecraft/network/INetHandler;)V", shift = At.Shift.BEFORE), cancellable = true)
 	private void packetReceived(ChannelHandlerContext ctx, Packet<?> packet, CallbackInfo ci) {
-		/*
-		if (packet instanceof S02PacketChat) {
-			Logger.send("Message in chat " + ((S02PacketChat)packet).getChatComponent().getUnformattedText());
-		}
-		*/
 	}
 	
 	
@@ -51,7 +52,7 @@ public class MixinNetworkManager {
 	}
 
 	@Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
-	private void sendPacket(Packet packetIn, CallbackInfo ci) throws InterruptedException {
+	private void sendPacket(Packet<?> packetIn, CallbackInfo ci) throws InterruptedException {
 
 		double x = 0, y = 0, z = 0;
 		
@@ -80,6 +81,21 @@ public class MixinNetworkManager {
 		    KeyboardHandler.setX(x);
 		    KeyboardHandler.setY(y);
 		    KeyboardHandler.setZ(z);
+		}
+
+		if (packetIn instanceof C07PacketPlayerDigging) {
+		    C07PacketPlayerDigging diggingPacket = (C07PacketPlayerDigging)packetIn;
+		    if (diggingPacket.getStatus() == C07PacketPlayerDigging.Action.START_DESTROY_BLOCK) {
+		        BlockPos pos = diggingPacket.getPosition();
+		        IBlockState state = Minecraft.getMinecraft().theWorld.getBlockState(pos);
+		        Block block = state.getBlock();
+		        switch (PestMain.farmingType) {
+		        case "wheat":
+					if (block == Blocks.wheat && state.getValue(BlockCrops.AGE).intValue() == 7) {
+						PestMain.notifyBlockBreak();
+					}
+		        }
+		    }
 		}
 		
 		/*

@@ -21,27 +21,28 @@ public class PestThread extends FarmingThread {
 					continue;
 				}
 				if (!commandQueue.isEmpty()) {
-					String command = commandQueue.poll();
-					Minecraft.getMinecraft().thePlayer.sendChatMessage(command);
-					Thread.sleep(3000);
+					CommandInfo command = commandQueue.poll();
+					Thread.sleep(command.timeBefore);
+					Minecraft.getMinecraft().thePlayer.sendChatMessage(command.command);
+					Thread.sleep(command.timeAfter);
 					continue;
 				}
 				if (!inSkyblock()) {
 					Logger.send("Not in skyblock, warping");
-					commandQueue.add("/lobby");
-					commandQueue.add("/play skyblock");
+					commandQueue.add(new CommandInfo("/lobby", 1000, 3000));
+					commandQueue.add(new CommandInfo("/play skyblock", 1000, 3000));
 					continue;
 				}
 				if (!inGarden()) {
 					Logger.send("Not in garden, warping");
-					commandQueue.add("/warp garden");
+					commandQueue.add(new CommandInfo("/warp garden", 1000, 3000));
 					continue;
 				}
 				{
 					double x = Minecraft.getMinecraft().thePlayer.posX;
 					double z = Minecraft.getMinecraft().thePlayer.posZ;
 					if (x > -143 || x < -240 || z < -143 || z > 143) {
-						commandQueue.add("/plottp 15");
+						commandQueue.add(new CommandInfo("/plottp 15", 500, 500));
 						continue;
 					}
 					if (Minecraft.getMinecraft().thePlayer.inventory.currentItem != 0) {

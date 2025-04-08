@@ -18,6 +18,14 @@ public abstract class FarmingThread extends Thread {
 		Logger.send("Pest farming " + (running ? "resumed" : "paused"));
 	}
 	
+	public void debug() {
+		Logger.send("Debug");
+	}
+	
+	public void notifyBlockBreak() {
+		lastCropBreakTime = System.currentTimeMillis();
+	}
+
 	protected boolean inLoadingScreen() {
 		return Minecraft.getMinecraft().theWorld == null || 
 				Minecraft.getMinecraft().thePlayer == null || 
@@ -44,11 +52,28 @@ public abstract class FarmingThread extends Thread {
 		return null;
 	}
 	
-	public void debug() {
-		Logger.send("Debug");
+	protected String macroResponseMessage() {
+		if (macroCheckCount == 0) {
+			return "???";
+		}
+		else if (macroCheckCount == 1) {
+			return "no way again bruh";
+		}
+		else if (macroCheckCount == 2) {
+			return "hi again";
+		}
+		else {
+			return "lool";
+		}
 	}
 	
+	
 	protected volatile boolean running = false;
-	protected Queue<String> commandQueue = new LinkedList<>();
+	protected Queue<CommandInfo> commandQueue = new LinkedList<>();
 	protected TurnThread turnThread = new TurnThread();
+
+	protected final long INF = (long)1e14;
+	protected long lastCropBreakTime = INF;
+	protected int macroCheckCount = 0;
+	protected long upTime = 0;
 }

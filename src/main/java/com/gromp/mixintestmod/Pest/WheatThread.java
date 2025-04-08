@@ -17,12 +17,14 @@ public class WheatThread extends FarmingThread {
 		if (!running) { 
 			turnThread.stopRunning();
 			resetKeyBinds();
+			upTime = 0;
 		}
 	}
 	@Override
 	public void debug() {
 		
 	}
+	
 	@Override
 	public void run() {
 		try {
@@ -38,6 +40,7 @@ public class WheatThread extends FarmingThread {
 				}
 				if (inLoadingScreen()) {
 					resetKeyBinds();
+					upTime = 0;
 					continue;
 				}
 				if (mc.currentScreen != null) {
@@ -45,38 +48,60 @@ public class WheatThread extends FarmingThread {
 					mc.addScheduledTask(() -> {
 						mc.displayGuiScreen(null);
 					});
+					upTime = 0;
 					continue;
 				}
 				if (!commandQueue.isEmpty()) {
 					resetKeyBinds();
-					String command = commandQueue.poll();
-					Thread.sleep(1000);
-					mc.thePlayer.sendChatMessage(command);
-					Thread.sleep(4000);
+					CommandInfo command = commandQueue.poll();
+					Thread.sleep(command.timeBefore);
+					mc.thePlayer.sendChatMessage(command.command);
+					Thread.sleep(command.timeAfter);
+					upTime = 0;
 					continue;
 				}
 				if (!inSkyblock()) {
 					Logger.send("Not in skyblock, warping");
-					commandQueue.add("/lobby");
-					commandQueue.add("/play skyblock");
+					commandQueue.add(new CommandInfo("/lobby", 1000, 3000));
+					commandQueue.add(new CommandInfo("/play skyblock", 1000, 3000));
 					continue;
 				}
 				if (!inGarden()) {
 					Logger.send("Not in garden, warping");
-					commandQueue.add("/warp garden");
+					commandQueue.add(new CommandInfo("/warp garden", 1000, 3000));
 					continue;
 				}
 				if (macroCheckType != null) {
-					resetKeyBinds();
 					Logger.send("Macro check: " + macroCheckType);
 					switch (macroCheckType) {
 					case "Hotbar Swap":
 						Thread.sleep(2000);
+						resetKeyBinds();
 						mc.thePlayer.inventory.currentItem = 0;
 						Thread.sleep(2000);
 						break;
+					case "Idle":
+						resetKeyBinds();
+						Thread.sleep(2000);
+						mc.thePlayer.sendChatMessage(macroResponseMessage());
+						Thread.sleep(10000);
+						break;
+					case "Bedrock":
+						Thread.sleep(2000);
+						resetKeyBinds();
+						Thread.sleep(2000);
+						mc.thePlayer.sendChatMessage(macroResponseMessage());
+						commandQueue.add(new CommandInfo("/warp garden", 3000, 500));
 					}
+					macroCheckCount++;
 					macroCheckType = null;
+					upTime = 0;
+					continue;
+				}
+				upTime += 50;
+				final long cropBreakInterval = 3000;
+				if (upTime >= cropBreakInterval && System.currentTimeMillis() - lastCropBreakTime >= cropBreakInterval) {
+					macroCheckType = "Idle";
 					continue;
 				}
 				boolean foundPest = false;
@@ -149,7 +174,11 @@ public class WheatThread extends FarmingThread {
 						continue;
 					}
 					
+
+					KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+					KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), true);
 					turnThread.startRunning();
+
 					if (!turnThread.onTarget()) {
 						continue;
 					}
@@ -157,14 +186,13 @@ public class WheatThread extends FarmingThread {
 					int lane = getLane(x);
 					if (lane == 15 && z >= -48.4) {
 						resetKeyBinds();
-						commandQueue.add("/warp garden");
+						commandQueue.add(new CommandInfo("/warp garden", 500, 500));
 						turnThread.stopRunning();
 						resetFarmingAngles();
 						setTurnThreadToFarmingAngles();
+						upTime = 0;
 						continue;
 					}
-					KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
-					KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), true);
 					if (lane % 2 == 0) { // go left
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), true);
 						KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), false);
