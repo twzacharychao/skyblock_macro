@@ -27,13 +27,13 @@ public class PestThread extends FarmingThread {
 					Thread.sleep(command.timeAfter);
 					continue;
 				}
-				if (!inSkyblock()) {
+				if (inSkyblock() == -1) {
 					Logger.send("Not in skyblock, warping");
 					commandQueue.add(new CommandInfo("/lobby", 1000, 3000));
 					commandQueue.add(new CommandInfo("/play skyblock", 1000, 3000));
 					continue;
 				}
-				if (!inGarden()) {
+				if (inGarden() == -1) {
 					Logger.send("Not in garden, warping");
 					commandQueue.add(new CommandInfo("/warp garden", 1000, 3000));
 					continue;

@@ -12,6 +12,7 @@
     "MixinMinecraft",
     "MixinEntityPlayerSP",
 	"MixinKeyBinding",
-	"MixinEntityRenderer"
+	"MixinEntityRenderer",
+	"GuiEditSignInvoker"
   ]
 }

@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.gromp.mixintestmod.KeyboardHandler;
+import com.gromp.mixintestmod.Helpers.Logger;
 import com.gromp.mixintestmod.Pest.PestMain;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -19,6 +20,7 @@ import net.minecraft.network.play.client.C03PacketPlayer.C04PacketPlayerPosition
 import net.minecraft.network.play.client.C03PacketPlayer.C05PacketPlayerLook;
 import net.minecraft.network.play.client.C03PacketPlayer.C06PacketPlayerPosLook;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
+import net.minecraft.network.play.client.C12PacketUpdateSign;
 import net.minecraft.util.BlockPos;
 
 
@@ -52,6 +54,7 @@ public class MixinNetworkManager {
 	@Inject(method = "sendPacket(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"), cancellable = true)
 	private void sendPacket(Packet<?> packetIn, CallbackInfo ci) throws InterruptedException {
 
+		/*
 		double x = 0, y = 0, z = 0;
 		
 		if (packetIn instanceof C06PacketPlayerPosLook) {
@@ -95,6 +98,17 @@ public class MixinNetworkManager {
 		        }
 		    }
 		}
+		*/
+		
+		/*
+		if (packetIn instanceof C12PacketUpdateSign) {
+			C12PacketUpdateSign p = (C12PacketUpdateSign)packetIn;
+			Logger.send("Sign packet\n" + p.getPosition());
+			for (int i = 0; i < 4; i++) {
+				Logger.send(p.getLines()[i].getFormattedText());
+			}
+		}
+		*/
 		
 		/*
 		boolean AutoTool = false; // temporarily disabled

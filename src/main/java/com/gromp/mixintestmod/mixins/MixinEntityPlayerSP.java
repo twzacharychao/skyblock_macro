@@ -14,6 +14,8 @@ import com.gromp.mixintestmod.MouseHandler;
 import com.gromp.mixintestmod.Helpers.Logger;
 import com.gromp.mixintestmod.Pest.PestMain;
 import com.gromp.mixintestmod.Pest.TurnThread;
+import com.gromp.mixintestmod.bazaar.BazaarFlipper;
+import com.gromp.mixintestmod.bazaar.FlipperManager;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -363,6 +365,51 @@ public class MixinEntityPlayerSP {
 					}
 					catch (InterruptedException e) {}
 				}).start();
+			}
+			else if (cmd.equals("bz")) {
+				if (each.length == 2) {
+					if (each[1].equals("start")) {
+						FlipperManager.flipper = new BazaarFlipper();
+						Logger.send("Bazaar flipper initiated");
+					}
+					else if (each[1].equals("stop")) {
+						FlipperManager.flipper.stop();
+						FlipperManager.flipper = null;
+						Logger.send("Bazaar flipper terminated");
+					}
+					else if (each[1].equals("derpy")) {
+						FlipperManager.setDerpyMayor(true);
+					}
+					else if (each[1].equals("normal")) {
+						FlipperManager.setDerpyMayor(false);
+					}
+					else if (each[1].equals("showinfo")) {
+						FlipperManager.setShowInfo(true);
+					}
+					else if (each[1].equals("hideinfo")) {
+						FlipperManager.setShowInfo(false);
+					}
+					else if (each[1].equals("help")) {
+						Logger.send(";bz start to start\n;bz stop to stop\n;bz derpy to set tax rate to 4 times\n;bz normal to reset\n;bz <showinfo/hideinfo> to toggle debug info\n;bz canbuy <0/1>\no to start and p to pause");
+					}
+					else {
+						Logger.send("try ;bz help");
+					}
+				}
+				else if (each.length == 3 && each[1].equals("canbuy")) {
+					if (each[2].equals("0")) {
+						FlipperManager.setCanBuy(false);
+					}
+					else if (each[2].equals("1")) {
+						FlipperManager.setCanBuy(true);
+					}
+				}
+				else if (each.length == 4 && each[1].equals("buy")) {
+					FlipperManager.buy(each[2], Integer.parseInt(each[3]));
+				}
+				else {
+					Logger.send("try ;bz help");
+				}
 			}
 			else if (cmd.equals("help")) {
 				Logger.send("Available commands:\nturn (pitch, yaw)\nmove (x, z)\nsetspeed (speed)\nfarm (wheat/pumpkin/start)\nclearqueue\nmodifyconstant\npest (start/stop)");
