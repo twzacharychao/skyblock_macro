@@ -31,7 +31,7 @@ public class BazaarFlipper {
 					try {
 						while (true) {
 							Thread.sleep(100);
-							if (!running || filledItemType.length() > 0) continue;
+							if (!running) continue;
 							Minecraft mc = Minecraft.getMinecraft();
 							if (mc.thePlayer.openContainer instanceof ContainerChest && getChestName().equals("Your Bazaar Orders")) {
 								for (Slot slot : mc.thePlayer.openContainer.inventorySlots) {
@@ -71,6 +71,7 @@ public class BazaarFlipper {
 					}
 				});
 				monitorOrderFillThread.start();
+				int lastBuyStep = 0, lastSellStep = 0, lastCancelBuyStep = 0, lastCancelSellStep = 0, equalToLastCount = 0, lastInitStep = 0;
 				while (true) {
 					Thread.sleep((int)(rand.nextDouble() * 200) + 250);
 					if (!running) continue;
@@ -119,11 +120,45 @@ public class BazaarFlipper {
 						else return 0;
 					});
 					if (showInfo) {
+						/*
 						Logger.send("To sell queue " + toSellQueue);
 						Logger.send("BuyOrders " + buyOrders);
 						Logger.send("SellOrders " + sellOrders);
+						*/
+						Logger.send("Steps " + initStep + " " + sellStep + " " + buyStep + " " + cancelBuyStep + " " + cancelSellStep + " " + equalToLastCount);
 					}
-					if ((System.currentTimeMillis() - lastInitTime) >= 20000 && 
+					if (buyStep == lastBuyStep && sellStep == lastSellStep && cancelBuyStep == lastCancelBuyStep && cancelSellStep == lastCancelSellStep && initStep == lastInitStep
+							&& (buyStep != 0 || sellStep != 0 || cancelBuyStep != 0 || cancelSellStep != 0 || initStep != 0)) {
+						if (++equalToLastCount >= 7) {
+							Logger.send("restarting because stuck");
+							buyStep = 0;
+							sellStep = 0;
+							lastBuyStep = 0;
+							lastSellStep = 0;
+							cancelBuyItem = "";
+							cancelSellItem = "";
+							toBuy = "";
+							toSell = "";
+							toBuyAmount = 0;
+							initStep = 0;
+							equalToLastCount = 0;
+							if (mc.thePlayer.openContainer instanceof ContainerChest) {
+								mc.addScheduledTask(() -> {
+									mc.thePlayer.closeScreen();
+								});
+							}
+							continue;
+						}
+					}
+					else {
+						equalToLastCount = 0;
+					}
+					lastBuyStep = buyStep;
+					lastSellStep = sellStep;
+					lastCancelBuyStep = cancelBuyStep;
+					lastCancelSellStep = cancelSellStep;
+					lastInitStep = initStep;
+					if ((System.currentTimeMillis() - lastInitTime) >= 10000 && 
 							(toSell.length() == 0 && cancelSellItem.length() == 0 && cancelBuyItem.length() == 0 && toBuyAmount == 0)) {
 							// initialization / sync with server
 						if (initStep == 0) {
@@ -135,8 +170,9 @@ public class BazaarFlipper {
 							}
 						}
 						if (initStep == 1) {
-							if (!inventoryContains("Manage Orders")) {
+							if (getChestName().equals("Your Bazaar Orders")) {
 								initStep++;
+								continue;
 							}
 							else {
 								clickItem("Manage Orders");
@@ -147,8 +183,8 @@ public class BazaarFlipper {
 								initStep++;
 							}
 							else {
-								buyOrders = new ArrayList<>();
-								sellOrders = new ArrayList<>();
+								ArrayList<BazaarOrder> buyOrders2 = new ArrayList<>();
+								ArrayList<BazaarOrder> sellOrders2 = new ArrayList<>();
 								for (Slot slot : mc.thePlayer.openContainer.inventorySlots) {
 									if (slot == null || !slot.getHasStack()) continue;
 									String name = formatString(slot.getStack().getDisplayName());
@@ -163,7 +199,7 @@ public class BazaarFlipper {
 												unitPrice = Double.parseDouble(price);
 											}
 										}
-										buyOrders.add(new BazaarOrder(item, unitPrice, scraperIteration));
+										buyOrders2.add(new BazaarOrder(item, unitPrice, scraperIteration));
 									}
 									else if (name.length() >= 4 && name.substring(0, 4).equals("SELL")) {
 										String item = name.substring(5);
@@ -176,10 +212,29 @@ public class BazaarFlipper {
 												unitPrice = Double.parseDouble(price);
 											}
 										}
-										sellOrders.add(new BazaarOrder(item, unitPrice, scraperIteration));
+										sellOrders2.add(new BazaarOrder(item, unitPrice, scraperIteration));
 									}
 								}
-								Logger.send("Sell orders " + sellOrders.toString());
+								if (buyOrders != null) {
+									for (BazaarOrder item : buyOrders) {
+										for (BazaarOrder item2 : buyOrders2) {
+											if (item.name.equals(item2.name) && Math.abs(item.price - item2.price) < 0.01 && item2.iterationBought == scraperIteration) {
+												item2.iterationBought = item.iterationBought;
+												break;
+											}
+										}
+									}
+									for (BazaarOrder item : sellOrders) {
+										for (BazaarOrder item2 : sellOrders2) {
+											if (item.name.equals(item2.name) && Math.abs(item.price - item2.price) < 0.01 && item2.iterationBought == scraperIteration) {
+												item2.iterationBought = item.iterationBought;
+												break;
+											}
+										}
+									}
+								}
+								buyOrders = buyOrders2;
+								sellOrders = sellOrders2;
 								mc.addScheduledTask(() -> {
 									mc.thePlayer.closeScreen();
 								});
@@ -188,6 +243,8 @@ public class BazaarFlipper {
 						if (initStep == 3) {
 							initStep = 0;
 							lastInitTime = System.currentTimeMillis();
+							Logger.send("Buy orders " + buyOrders.toString());
+							Logger.send("Sell orders " + sellOrders.toString());
 							Logger.send("Synced with server");
 						}
 						continue;
@@ -266,6 +323,13 @@ public class BazaarFlipper {
 							if (getChestName().equals("Your Bazaar Orders")) {
 								cancelSellStep++;
 							}
+							else if (getChestName().equals("")) {
+								cancelSellStep = 0;
+								cancelBuyItem = "";
+								mc.addScheduledTask(() -> {
+									mc.thePlayer.closeScreen();
+								});
+							}
 							else {
 								clickItem("Manage Orders");
 							}
@@ -300,6 +364,13 @@ public class BazaarFlipper {
 									clickItem("Cancel Order");
 								}
 							}
+							else if (getChestName().equals("")) {
+								cancelSellStep = 0;
+								cancelSellItem = "";
+								mc.addScheduledTask(() -> {
+									mc.thePlayer.closeScreen();
+								});
+							}
 							else {
 								cancelSellStep++;
 							}
@@ -314,10 +385,6 @@ public class BazaarFlipper {
 							Logger.send("Canceled sell order for " + cancelSellItem);
 							if (!sellOrderFilled) { 
 								toSellQueue.add(cancelSellItem);
-							}
-							if (filledItemType.equals("SELL") && filledItemName.equals(cancelSellItem)) {
-								filledItemType = "";
-								filledItemName = "";
 							}
 							cancelSellItem = "";
 							cancelSellStep = 0;
@@ -339,6 +406,13 @@ public class BazaarFlipper {
 						if (cancelBuyStep == 1) {
 							if (getChestName().equals("Your Bazaar Orders")) {
 								cancelBuyStep++;
+							}
+							else if (getChestName().equals("")) {
+								cancelBuyStep = 0;
+								cancelBuyItem = "";
+								mc.addScheduledTask(() -> {
+									mc.thePlayer.closeScreen();
+								});
 							}
 							else {
 								clickItem("Manage Orders");
@@ -384,6 +458,13 @@ public class BazaarFlipper {
 									clickItem("Cancel Order");
 								}
 							}
+							else if (getChestName().equals("")) {
+								cancelBuyStep = 0;
+								cancelBuyItem = "";
+								mc.addScheduledTask(() -> {
+									mc.thePlayer.closeScreen();
+								});
+							}
 							else {
 								cancelBuyStep++;
 							}
@@ -398,10 +479,6 @@ public class BazaarFlipper {
 							Logger.send("Canceled buy order for " + cancelBuyItem);
 							if (amountBought > 0) { 
 								toSellQueue.add(cancelBuyItem);
-							}
-							if (filledItemType.equals("BUY") && filledItemName.equals(cancelBuyItem)) {
-								filledItemType = "";
-								filledItemName = "";
 							}
 							cancelBuyItem = "";
 							cancelBuyStep = 0;
@@ -498,8 +575,8 @@ public class BazaarFlipper {
 					}
 					//if one of our orders got overwritten
 					for (BazaarOrder item : sellOrders) {
-						if (bazaarItems.containsKey(item.name) && bazaarItems.get(item.name).buyPrice < item.price - 0.01
-								&& scraperIteration > item.iterationBought) {
+						if (!bazaarItems.containsKey(item.name) || (bazaarItems.containsKey(item.name) && bazaarItems.get(item.name).buyPrice < item.price - 0.01
+								&& scraperIteration != item.iterationBought)) {
 							cancelSellItem = item.name;
 							break;
 						}
@@ -508,8 +585,8 @@ public class BazaarFlipper {
 						continue;
 					}
 					for (BazaarOrder item : buyOrders) {
-						if (bazaarItems.containsKey(item.name) && bazaarItems.get(item.name).sellPrice > item.price + 0.01
-								&& scraperIteration > item.iterationBought) {
+						if (!bazaarItems.containsKey(item.name) || (bazaarItems.containsKey(item.name) && bazaarItems.get(item.name).sellPrice > item.price + 0.01
+								&& scraperIteration != item.iterationBought)) {
 							cancelBuyItem = item.name;
 							break;
 						}
@@ -520,11 +597,15 @@ public class BazaarFlipper {
 					if (filledItemType.equals("SELL")) {
 						Logger.send("SELL " + filledItemName + " is filled");
 						cancelSellItem = filledItemName;
+						filledItemName = "";
+						filledItemType = "";
 						continue;
 					}
 					if (filledItemType.equals("BUY")) {
 						Logger.send("BUY " + filledItemName + " is filled");
 						cancelBuyItem = filledItemName;
+						filledItemName = "";
+						filledItemType = "";
 						continue;
 					}
 					if (canBuy && buyOrders.size() + sellOrders.size() < 14) {
@@ -612,7 +693,10 @@ public class BazaarFlipper {
 	}
 	
 	private String getChestName() {
-		return ((ContainerChest)Minecraft.getMinecraft().thePlayer.openContainer).getLowerChestInventory().getName();
+		if (Minecraft.getMinecraft().thePlayer.openContainer instanceof ContainerChest) {
+			return ((ContainerChest)Minecraft.getMinecraft().thePlayer.openContainer).getLowerChestInventory().getName();
+		}
+		return "";
 	}
 	
 	private void clickItem(String name) {
@@ -680,7 +764,7 @@ public class BazaarFlipper {
 		}
 		@Override
 		public String toString() {
-			return name + " " + price;
+			return name + " " + price + " " + iterationBought;
 		}
 	}
 
@@ -699,6 +783,6 @@ public class BazaarFlipper {
 
 	public volatile boolean canBuy = true;
 	public volatile String toBuy = "", toSell = "";
-	public volatile int toBuyAmount = 0, toSellAmount = 0;
+	public volatile int toBuyAmount = 0;
 	public volatile boolean showInfo = false;
 }
