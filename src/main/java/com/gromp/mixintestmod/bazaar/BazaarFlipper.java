@@ -105,11 +105,13 @@ public class BazaarFlipper {
 						for (int j = 1; j < 9; j++) {
 							data[j-1] = Double.parseDouble(lines.get(i+j));
 						}
-						int volume = (int)Math.round(Math.min(data[1], data[3]) / 30);
+						int volume = (int)Math.round(Math.min(data[1], data[3]) / 60);
 						double margin = (data[0] - data[2]) - data[0] * (tax * (derpyMayor ? 4 : 1));
-						BazaarItem itemData = new BazaarItem(name, data[0], data[2], margin, volume, margin * volume);
+						double profit = margin * volume;
+						BazaarItem itemData = new BazaarItem(name, data[0], data[2], margin, volume, profit);
 						bazaarItems.put(name, itemData);
-						if (volume >= 10 && volume <= 2240 && data[4] <= 0.21 && data[5] <= 0.21 && margin * volume >= 300000) {
+						double profitMargin = 0.02; // above what percentage do we accept
+						if (((volume >= 3 && volume <= 2240) || name.contains("Essence")) && data[4] <= 0.21 && data[5] <= 0.21 && profit >= 100000 && margin >= data[0] * profitMargin) {
 							flipCandidates.add(itemData);
 						}
 					}
@@ -243,9 +245,11 @@ public class BazaarFlipper {
 						if (initStep == 3) {
 							initStep = 0;
 							lastInitTime = System.currentTimeMillis();
-							Logger.send("Buy orders " + buyOrders.toString());
-							Logger.send("Sell orders " + sellOrders.toString());
-							Logger.send("Synced with server");
+							if (showInfo) {
+								Logger.send("Buy orders " + buyOrders.toString());
+								Logger.send("Sell orders " + sellOrders.toString());
+								Logger.send("Synced with server");
+							}
 						}
 						continue;
 					}
@@ -432,7 +436,14 @@ public class BazaarFlipper {
 											for (String s : tooltip) {
 												s = formatString(s);
 												if (s.endsWith("items to claim!")) {
-													int amount = Integer.parseInt(s.substring(9, s.length() - 16).replace(",", ""));
+													String stringAmount = s.substring(9, s.length() - 16).replace(",", "");
+													int mult = 1;
+													if (stringAmount.endsWith("k")) {
+														mult = 1000;
+														stringAmount = stringAmount.substring(0, stringAmount.length() - 1);
+														Logger.send("Ends with k");
+													}
+													int amount = (int)Math.round(Double.parseDouble(stringAmount) * mult);
 													Logger.send("Claiming " + amount + " " + cancelBuyItem);
 													amountBought = amount;
 													break;
@@ -573,10 +584,8 @@ public class BazaarFlipper {
 						toSellQueue.remove(toSellQueue.size() - 1);
 						continue;
 					}
-					//if one of our orders got overwritten
 					for (BazaarOrder item : sellOrders) {
-						if (!bazaarItems.containsKey(item.name) || (bazaarItems.containsKey(item.name) && bazaarItems.get(item.name).buyPrice < item.price - 0.01
-								&& scraperIteration != item.iterationBought)) {
+						if (bazaarItems.containsKey(item.name) && bazaarItems.get(item.name).buyPrice < item.price - 0.01 && scraperIteration != item.iterationBought) {
 							cancelSellItem = item.name;
 							break;
 						}
@@ -601,6 +610,22 @@ public class BazaarFlipper {
 						filledItemType = "";
 						continue;
 					}
+					if (!(mc.thePlayer.openContainer instanceof ContainerChest) && buyOrders.size() + sellOrders.size() < 21) {
+						for (int i = 9; i <= 44; i++) {
+							Slot slot = mc.thePlayer.openContainer.getSlot(i);
+							if (slot != null && slot.getHasStack()) {
+								String name = formatString(slot.getStack().getDisplayName());
+								if (!name.equals("SkyBlock Menu (Click)")) {
+									Logger.send("Extra item in inventory " + name);
+									toSell = name;
+									break;
+								}
+							}
+						}
+						if (toSell.length() > 0) {
+							continue;
+						}
+					}
 					if (filledItemType.equals("BUY")) {
 						Logger.send("BUY " + filledItemName + " is filled");
 						cancelBuyItem = filledItemName;
@@ -608,7 +633,7 @@ public class BazaarFlipper {
 						filledItemType = "";
 						continue;
 					}
-					if (canBuy && buyOrders.size() + sellOrders.size() < 14) {
+					if (canBuy && buyOrders.size() + sellOrders.size() < 20) {
 						for (BazaarItem b : flipCandidates) {
 							boolean found = false;
 							for (BazaarOrder item : buyOrders) {
@@ -633,6 +658,15 @@ public class BazaarFlipper {
 						if (toBuyAmount > 0) {
 							continue;
 						}
+					}
+					for (BazaarOrder item : sellOrders) {
+						if (!bazaarItems.containsKey(item.name) && scraperIteration != item.iterationBought) {
+							cancelSellItem = item.name;
+							break;
+						}
+					}
+					if (cancelSellItem.length() > 0) { // we found something bad
+						continue;
 					}
 				}
 			}
